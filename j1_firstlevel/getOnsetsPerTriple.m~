@@ -1,0 +1,63 @@
+function [eedton, iedton, odton, eedtdur, iedtdur, odtdur] = getOnsetsPerTriple(name, TR, r)
+% function [eedton, iedton, odton, eedtdur, iedtdur, odtdur] = getOnsetsPerTriple(name, TR, r)
+% name ... subjectname incl. measturementnumber, e.g. EMPRO15_001_M1
+% TR in {'0700', '1400'}
+% r in {1, 2, 3} .. run number
+
+% for each subject, measurement, run... e.g.
+%name = 'EMPRO15_001_M1';
+%TR = '0700'; r=2;
+
+ID = strcat('/z/fmri/data/empro15/logs/', name, '/edt_run',num2str(r),'_TR', TR, '_*');
+%         disp(ID);
+
+%logfilename = ls('../../logs/EMPRO15_002_M1*/edt_run1_TR0700_*'); %to account for timestamp in name
+%         ls(ID)
+logfilename = ls(ID);% ls(ID{1,1})
+logfilename = cellstr(logfilename);
+logfilename = logfilename{1,1};
+
+fid = fopen(logfilename, 'r');
+disp([logfilename ', fid: ' num2str(fid)])
+if fid<0
+    eedton = [];
+    iedton = [];
+    odton = [];
+    eedtdur = [];
+    iedtdur = [];
+    odtdur = [];
+else
+    log = textscan(fid, repmat('%s',1,8), 'delimiter',';', 'CollectOutput',true);
+    log = log{1};
+    fclose(fid);
+    
+    % get trigger and block onsets
+    trigger = 0;
+    eedton = [];
+    iedton = [];
+    odton = [];
+    eedtdur = [];
+    iedtdur = [];
+    odtdur = [];
+    
+    [lines, ~] = size(log);
+    for i=1:lines
+        if strcmp(log(i,2),'trigger')
+            trigger = str2double(log{i,1});
+        elseif strcmp(log(i,2),'new_triple_eedt')
+            if ~strcmp(log(i+1,2),'time_up')
+            eedton(end+1) = str2double(log{i,1}) - trigger;
+            eedtdur(end+1) = str2double(log{i+1,1}) - str2double(log{i,1});
+        elseif strcmp(log(i,2),'new_triple_iedt')
+            iedton(end+1) = str2double(log{i,1}) - trigger;
+            iedtdur(end+1) = str2double(log{i+1,1}) - str2double(log{i,1});
+        elseif strcmp(log(i,2),'new_triple_odt')
+            odton(end+1) = str2double(log{i,1}) - trigger;
+            odtdur(end+1) = str2double(log{i+1,1}) - str2double(log{i,1});
+        end
+    end
+    
+    
+end
+
+end

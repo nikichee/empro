@@ -1,0 +1,2 @@
+Seq	Host	Starttime	Runtime	Send	Receive	Exitval	Signal	Command
+1	:	1512418414.072	794.566	0	0	0	0	/usr/local/fsl5/bin/mcflirt -in /z/fmri/data/empro15/analysis/edt/preproc/m1/1.4/run1/empro15_018/buadvols.nii -out /z/fmri/data/empro15/analysis/edt/preproc/m1/1.4/run1/empro15_018/rbuadvols.nii -stages 4 -mats -plots -meanvol

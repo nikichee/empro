@@ -1,0 +1,16 @@
+#!/bin/bash
+worker=48/:
+threads="10"
+subjects=$(cat ./subject_names.txt)
+
+for s in $subjects
+do
+		CMD1="/usr/local/fsl5/bin/fugue -i /z/fmri/data/empro15/analysis/edt/preproc/m1/1.4/run1/$s/advols.nii --loadfmap=/z/fmri/data/empro15/analysis/edt/subjects/m1/1.4/run1/$s/rfieldmap_LPI.nii --dwell=$(rsinfo -i /z/fmri/data/empro15/analysis/edt/preproc/m1/1.4/run1/$s/advols.nii -k DwellTime) --unwarpdir=$(rsinfo -i /z/fmri/data/empro15/analysis/edt/preproc/m1/1.4/run1/$s/advols.nii -k PhaseEncodingDirection) --saveshift=/z/fmri/data/empro15/analysis/edt/preproc/m1/1.4/run1/$s/rvdm_LPI.nii --unmaskshift -u /z/fmri/data/empro15/analysis/edt/preproc/m1/1.4/run1/$s/uadvols.nii"
+		CMD2="/usr/local/fsl5/bin/fslmaths /z/fmri/data/empro15/analysis/edt/preproc/m1/1.4/run1/$s/uadvols.nii -div /z/fmri/data/empro15/analysis/edt/preproc/m1/1.4/run1/$s/bf.nii /z/fmri/data/empro15/analysis/edt/preproc/m1/1.4/run1/$s/buadvols.nii"
+		CMD3="/usr/local/fsl5/bin/mcflirt -in /z/fmri/data/empro15/analysis/edt/preproc/m1/1.4/run1/$s/buadvols.nii -out /z/fmri/data/empro15/analysis/edt/preproc/m1/1.4/run1/$s/rbuadvols.nii -stages 4 -mats -plots -meanvol"
+		
+		echo "$CMD2" | parallel -j+0 --eta --joblog pps.log -S$worker $CMD 
+		#echo "$CMD1"
+		echo $s
+done
+

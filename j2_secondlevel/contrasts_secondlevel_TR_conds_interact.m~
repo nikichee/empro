@@ -1,0 +1,64 @@
+
+
+clear matlabbatch;
+i=1;
+
+matlabbatch{i}.spm.stats.con.spmmat = {['/net/mri.meduniwien.ac.at/projects/physics/fmri/data/empro15/analysis/edt/2_secondlevel/flexiblefactorial_TR1.4_runs-conds-interact/SPM.mat']};
+
+j=1; 
+
+matlabbatch{i}.spm.stats.con.consess{j}.fcon.name = 'EOI';
+matlabbatch{i}.spm.stats.con.consess{j}.fcon.weights = eye(6);
+matlabbatch{i}.spm.stats.con.consess{j}.fcon.sessrep = 'none';
+j=j+1;
+
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.name = 'edt>odt';
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.weights = [1 1 -2 1 1 -2];
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.sessrep = 'none';
+j=j+1;
+
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.name = 'edt<odt';
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.weights = [-1 -1 2 -1 -1 2];
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.sessrep = 'none';
+j=j+1;
+
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.name = 'eedt>odt';
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.weights = [1 0 -1 1 0 -1];
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.sessrep = 'none';
+j=j+1;
+
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.name = 'eedt<odt';
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.weights = [-1 0 1 -1 0 1];
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.sessrep = 'none';
+j=j+1;
+
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.name = 'TR0700 > TR1400';
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.weights = [1 1 1 -1 -1 -1];
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.sessrep = 'none';
+j=j+1;
+
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.name = 'TR0700 < TR1400';
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.weights = [-1 -1 -1 1 1 1];
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.sessrep = 'none';
+j=j+1;
+
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.name = 'eedt';
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.weights = [1/2 0 0 1/2 0 0];
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.sessrep = 'none';
+j=j+1;
+
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.name = 'iedt';
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.weights = [0 1/2 0 0 1/2 0];
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.sessrep = 'none';
+j=j+1;
+
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.name = 'oedt';
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.weights = [0 0 1/2 0 0 1/2];
+matlabbatch{i}.spm.stats.con.consess{j}.tcon.sessrep = 'none';
+matlabbatch{i}.spm.stats.con.delete = 1;
+j=j+1;
+
+
+
+
+spm_jobman('interactive',matlabbatch); % 'serial' or 'interactive'

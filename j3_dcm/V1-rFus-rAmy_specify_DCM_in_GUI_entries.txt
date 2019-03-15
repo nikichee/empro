@@ -1,0 +1,19 @@
+
+% specify one DCM: with GUI
+% enter which SPM.mat
+% name
+% VOIs: - 
+VOI_run1_V1_1.mat
+VOI_run1_rFusFace_1.mat
+VOI_run1_rFusObj_1.mat
+VOI_run1_rAmy_1.mat
+% include eedt: yes, iedt: yes, odt: yes
+% VOI timings [s]: 0.7 0.7 0.7 %(for TR1.4)
+(or for TR0.7: % VOI timings [s]: 0.7 0.7 0.7)
+% echo time (TE) [s]: 0.023
+% Model options: defaults (bilinear, one state, no stochastic effects, no centre input)
+% a: [1 0 0 0; 1 1 0 1; 1 0 1 1; 0 1 1 1]
+% b: for eedt, iedt, odt: 
+direct input: in V1 (1;0;0;0)
+connectivity: [0 0 0 0; 1 0 0 1; 1 0 0 1; 0 1 1 0]
+

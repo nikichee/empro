@@ -1,0 +1,482 @@
+################################################################
+## Task #1                                                    ##
+## Reorient EPI to LPI                                        ##
+################################################################
+
+Tool:
+ Reorientation (AFNI)
+
+Params:
+  --orientation=LPI
+  --output=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/vols_LPI.nii
+  --input=/z/fmri/data/empro15/analysis/edt/subjects/m1/TR/run1/test/vols.nii
+  --dicom=/z/fmri/data/empro15/analysis/edt/subjects/m1/TR/run1/test/../dicom
+  --phaseencdir=y+
+
+Cmd:
+rm -f /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/vols_LPI.nii
+/usr/lib/afni/bin/3daxialize -prefix /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/vols_LPI.nii -orient LPI /z/fmri/data/empro15/analysis/edt/subjects/m1/TR/run1/test/vols.nii
+
+################################################################
+## Task #2                                                    ##
+## De-spiking                                                 ##
+################################################################
+
+Tool:
+ De-spiking
+
+Params:
+  --output=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/dvols.nii
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/vols_LPI.nii
+
+Cmd:
+rm -f /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/dvols.nii
+/usr/lib/afni/bin/3dDespike -prefix /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/dvols.nii -nomask -q /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/vols_LPI.nii
+
+################################################################
+## Task #3                                                    ##
+## Slice Timing (Multiband)                                   ##
+################################################################
+
+Tool:
+ Slice Timing (Multiband)
+
+Params:
+  --in=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/dvols.nii
+  --mean=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanadvols.nii
+  --out=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/advols.nii
+
+Cmd:
+$(rsinfo -i /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/dvols.nii -k MosaicRefAcqTimes) > tcustom.txt
+/usr/local/fsl5/bin/slicetimer --in=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/dvols.nii --out=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/advols.nii --tcustom=tcustom.txt --direction=3
+/usr/local/fsl5/bin/fslmaths /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/advols.nii -Tmean /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanadvols.nii
+
+################################################################
+## Task #4                                                    ##
+## Distortion Correction (Fieldmap)                           ##
+################################################################
+
+Tool:
+ Distortion Correction (Fieldmap)
+
+Params:
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/advols.nii
+  --output=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/uadvols.nii
+  --fieldmap=/z/fmri/data/empro15/analysis/edt/subjects/m1/TR/run1/test/rfieldmap_LPI.nii
+  --vdm=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/rvdm_LPI.nii
+  --mean=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanuadvols.nii
+
+Cmd:
+/usr/local/fsl5/bin/fugue -i /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/advols.nii --loadfmap=/z/fmri/data/empro15/analysis/edt/subjects/m1/TR/run1/test/rfieldmap_LPI.nii --dwell=$(rsinfo -i /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/advols.nii -k DwellTime) --unwarpdir=$(rsinfo -i /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/advols.nii -k PhaseEncodingDirection) --saveshift=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/rvdm_LPI.nii --unmaskshift -u /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/uadvols.nii
+/usr/local/fsl5/bin/fslmaths /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/uadvols.nii -Tmean /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanuadvols.nii
+
+################################################################
+## Task #5                                                    ##
+## Bias Field Correction                                      ##
+################################################################
+
+Tool:
+ Bias Field Correction
+
+Params:
+  --shrinkfactor=2
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/uadvols.nii
+  --secondaryInput=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanuadvols.nii
+  --output=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/buadvols.nii
+  --bfield=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/bf.nii
+
+Cmd:
+tmpdir=`mktemp -d 2>/dev/null || mktemp -d -t 'rstools-pps'`
+/usr/local/ants/bin/N4BiasFieldCorrection -i /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanuadvols.nii -d 3 -s 2 -o [$tmpdir/corrected.nii,/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/bf.nii]
+/usr/local/fsl5/bin/fslmaths /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/uadvols.nii -div /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/bf.nii /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/buadvols.nii
+rm -rf $tmpdir
+
+################################################################
+## Task #6                                                    ##
+## Realignment                                                ##
+################################################################
+
+Tool:
+ Realignment
+
+Params:
+  --stages=4
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/buadvols.nii
+  --output=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/rbuadvols.nii
+  --mean=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanrbuadvols.nii
+
+Cmd:
+/usr/local/fsl5/bin/mcflirt -in /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/buadvols.nii -out /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/rbuadvols.nii -stages 4 -mats -plots -meanvol
+/usr/local/fsl5/bin/fslmaths /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/rbuadvols.nii -Tmean /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanrbuadvols.nii
+
+################################################################
+## Task #7                                                    ##
+## Combined Realignment and Distortion Correction             ##
+## Transformation                                             ##
+################################################################
+
+Tool:
+ Unified Transformation
+
+Params:
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/advols.nii
+  --output=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/irbuadvols.nii
+  --reference=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanrbuadvols.nii
+  --headerReference=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/rbuadvols.nii
+  --trans=fugue,/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/rvdm_LPI.nii
+  --trans=div,/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/bf.nii
+  --trans=mcflirt,/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/rbuadvols.nii.mat
+
+################################################################
+## Task #8                                                    ##
+## Compute Template Registration                              ##
+################################################################
+
+Tool:
+ Normalization
+
+Params:
+  --epiTemplate=/z/fmrilab/lab/preprocessing/template/7tu_epi_template_LPI.nii
+  --epi2EpiTemplateWarp=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_Warp.nii.gz
+  --epi2EpiTemplateInvWarp=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_InverseWarp.nii.gz
+  --epi2EpiTemplateAffine=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_affine.txt
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/irbuadvols.nii
+  --mean=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanirbuadvols.nii
+
+Cmd:
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1
+# create a temporary directory
+tmpdir=`mktemp -d 2>/dev/null || mktemp -d -t 'rstools-pps'`
+ echo "Temporary directory: "$tmpdir
+
+# compute mean
+/usr/local/fsl5/bin/fslmaths /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/irbuadvols.nii -Tmean /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanirbuadvols.nii
+
+# compute EPI template edges
+/usr/local/fsl5/bin/fslmaths /z/fmrilab/lab/preprocessing/template/7tu_epi_template_LPI.nii -kernel file /usr/local/rsTools/share/rstools-preprocessing/utils/logkernel_0.3.nii.gz -fmeanu $tmpdir/edges_tpl.nii
+
+# compute EPI edges
+/usr/local/rsTools/bin/rsdeoblique -i /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanirbuadvols.nii -r $tmpdir/deob_trans.txt -o $tmpdir/deobliqued_input.nii -v
+/usr/local/rsTools/bin/rszeropadding -i $tmpdir/deobliqued_input.nii -o $tmpdir/padded_input.nii -a 5 -b 5 -c 5 -d 5 -e 5 -f 5 -v
+/usr/local/fsl5/bin/fslmaths $tmpdir/padded_input.nii -kernel file /usr/local/rsTools/share/rstools-preprocessing/utils/logkernel_0.3.nii.gz -fmeanu $tmpdir/edges_input.nii
+
+# register EPI edges to EPI template edges
+/usr/local/ants/bin/antsRegistration --verbose 1 --dimensionality 3 --float 0 --output "[$tmpdir/tpl,$tmpdir/tplWarped.nii.gz]" --interpolation Linear --winsorize-image-intensities "[0.005,0.995]" --use-histogram-matching 0 --initial-moving-transform "[$tmpdir/edges_tpl.nii,$tmpdir/edges_input.nii,0]" --transform "Rigid[0.1]" --metric "MI[$tmpdir/edges_tpl.nii,$tmpdir/edges_input.nii,1,32,Regular,0.25]" --convergence "[1000x500x250x100,1e-6,10]" --shrink-factors 8x4x2x1 --smoothing-sigmas 3x2x1x0vox --transform "Affine[0.1]" --metric "MI[$tmpdir/edges_tpl.nii,$tmpdir/edges_input.nii,1,32,Regular,0.25]" --convergence "[1000x500x250x100,1e-6,10]" --shrink-factors 8x4x2x1 --smoothing-sigmas 3x2x1x0vox --transform "SyN[0.1,3,0]" --metric "CC[$tmpdir/edges_tpl.nii,$tmpdir/edges_input.nii,1,4]" --convergence "[100x70x50x20,1e-6,10]" --shrink-factors 8x4x2x1 --smoothing-sigmas 3x2x1x0vox
+
+# warp brain mask
+/usr/local/ants/bin/antsApplyTransforms -e 3 -d 3 -i /z/fmrilab/lab/preprocessing/template/t1_template_MNI_brainmask.nii -o $tmpdir/brainmask_tpl.nii -r $tmpdir/edges_tpl.nii -t "[/z/fmrilab/lab/preprocessing/template/7tu_epi_template_affine.txt,1]" -t /z/fmrilab/lab/preprocessing/template/7tu_epi_template_InverseWarp.nii.gz
+/usr/local/ants/bin/antsApplyTransforms -e 3 -d 3 -i /z/fmrilab/lab/preprocessing/template/t1_template_MNI_brainmask.nii -o $tmpdir/brainmask_input.nii -r $tmpdir/deobliqued_input.nii -t "[$tmpdir/tpl0GenericAffine.mat,1]" $tmpdir/tpl1InverseWarp.nii.gz -t "[/z/fmrilab/lab/preprocessing/template/7tu_epi_template_affine.txt,1]" -t /z/fmrilab/lab/preprocessing/template/7tu_epi_template_InverseWarp.nii.gz
+
+# create field of view mask
+/usr/local/fsl5/bin/fslmaths /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanirbuadvols.nii -thr 1 -uthr 0 -add 1 $tmpdir/fov_input.nii
+/usr/local/ants/bin/antsApplyTransforms -e 3 -d 3 -i $tmpdir/fov_input.nii -o $tmpdir/deobliqued_fov_input.nii -r $tmpdir/deobliqued_input.nii
+/usr/local/fsl5/bin/fslmaths $tmpdir/brainmask_input.nii -mas $tmpdir/deobliqued_fov_input.nii $tmpdir/fov_brainmask_input.nii
+
+# create epi template mask
+/usr/local/fsl5/bin/fslmaths /z/fmrilab/lab/preprocessing/template/7tu_epi_template_LPI.nii -mas $tmpdir/brainmask_tpl.nii $tmpdir/brainmasked_tpl.nii
+csfValue=$(/usr/local/fsl5/bin/fslstats $tmpdir/brainmasked_tpl.nii -k $tmpdir/brainmask_tpl.nii -p 95)
+/usr/local/fsl5/bin/fslmaths $tmpdir/brainmask_tpl.nii -binv -mul $csfValue $tmpdir/brainmask_inv_tpl.nii
+/usr/local/fsl5/bin/fslmaths $tmpdir/brainmasked_tpl.nii -add $tmpdir/brainmask_inv_tpl.nii $tmpdir/skullstripped_tpl.nii
+
+# create epi mask
+/usr/local/fsl5/bin/fslmaths $tmpdir/deobliqued_input.nii -mas $tmpdir/fov_brainmask_input.nii $tmpdir/brainmasked_input.nii
+csfValue=$(/usr/local/fsl5/bin/fslstats $tmpdir/brainmasked_input.nii -k $tmpdir/fov_brainmask_input.nii -p 95)
+/usr/local/fsl5/bin/fslmaths $tmpdir/fov_brainmask_input.nii -binv -mul $csfValue $tmpdir/brainmask_inv_input.nii
+/usr/local/fsl5/bin/fslmaths $tmpdir/brainmasked_input.nii -add $tmpdir/brainmask_inv_input.nii $tmpdir/skullstripped_input.nii
+
+# perform registration
+## get the rigid part
+/usr/local/ants/bin/antsRegistration --verbose 1 --dimensionality 3 --float 0 --output "[$tmpdir/final_tpl,$tmpdir/final_tplWarped.nii.gz]" --interpolation Linear --winsorize-image-intensities "[0.005,0.995]" --use-histogram-matching 0 --initial-moving-transform "[$tmpdir/skullstripped_tpl.nii,$tmpdir/skullstripped_input.nii,1]" --transform "Rigid[0.1]" --metric "MI[$tmpdir/skullstripped_tpl.nii,$tmpdir/skullstripped_input.nii,1,32,Regular,0.25]" --convergence "[1000x500x250x100,1e-6,10]" --shrink-factors 8x4x2x1 --smoothing-sigmas 3x2x1x0vox --transform "Affine[0.1]" --metric "MI[$tmpdir/skullstripped_tpl.nii,$tmpdir/skullstripped_input.nii,1,32,Regular,0.25]" --convergence "[1000x500x250x100,1e-6,10]" --shrink-factors 8x4x2x1 --smoothing-sigmas 3x2x1x0vox
+## get the deformable part
+/usr/local/ants/bin/antsRegistration --verbose 1 -d 3 --initial-moving-transform $tmpdir/final_tpl0GenericAffine.mat -m "cc[$tmpdir/skullstripped_tpl.nii,$tmpdir/skullstripped_input.nii,1,2]" -t 'SyN[0.25,3,0]' -c 100x70x50x20 -f 8x4x2x1 -s 3x2x1x0 -o $tmpdir/final_tpl2
+/usr/local/ants/bin/ConvertTransformFile 3 $tmpdir/final_tpl20GenericAffine.mat $tmpdir/final_tpl20GenericAffine.txt
+
+# save resulting transformation parameters
+cp $tmpdir/final_tpl21Warp.nii.gz /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_Warp.nii.gz
+cp $tmpdir/final_tpl21InverseWarp.nii.gz /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_InverseWarp.nii.gz
+cp $tmpdir/final_tpl20GenericAffine.txt /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_affine.txt
+rm -rf $tmpdir
+
+################################################################
+## Task #9                                                    ##
+## Transform EPI to MNI                                       ##
+################################################################
+
+Tool:
+ Unified Transformation
+
+Params:
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/advols.nii
+  --output=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/iwrbuadvols.nii
+  --reference=/z/fmrilab/lab/preprocessing/template/t1_template_MNI_epi_space.nii
+  --headerReference=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanirbuadvols.nii
+  --trans=fugue,/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/rvdm_LPI.nii
+  --trans=div,/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/bf.nii
+  --trans=mcflirt,/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/rbuadvols.nii.mat
+  --trans=ants,/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_affine.txt
+  --trans=ants,/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_Warp.nii.gz
+  --trans=ants,/z/fmrilab/lab/preprocessing/template/7tu_epi_template_affine.txt
+  --trans=ants,/z/fmrilab/lab/preprocessing/template/7tu_epi_template_Warp.nii.gz
+
+################################################################
+## Task #10                                                   ##
+## Transform mean EPI to MNI                                  ##
+################################################################
+
+Tool:
+ Transformation
+
+Params:
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanirbuadvols.nii
+  --output=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/wmeanrbuadvols_mnitpl.nii
+  --reference=/z/fmrilab/lab/preprocessing/template/t1_template_MNI.nii
+  --transformationType=epi2mni
+  --epi2EpiTemplateWarp=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_Warp.nii.gz
+  --epi2EpiTemplateInvWarp=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_InverseWarp.nii.gz
+  --epi2EpiTemplateAffine=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_affine.txt
+  --epiTemplateWarp=/z/fmrilab/lab/preprocessing/template/7tu_epi_template_Warp.nii.gz
+  --epiTemplateInvWarp=/z/fmrilab/lab/preprocessing/template/7tu_epi_template_InverseWarp.nii.gz
+  --epiTemplateAffine=/z/fmrilab/lab/preprocessing/template/7tu_epi_template_affine.txt
+  --new
+
+Cmd:
+/usr/local/ants/bin/antsApplyTransforms -e 3 -d 3 -i /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanirbuadvols.nii -o /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/wmeanrbuadvols_mnitpl.nii -r /z/fmrilab/lab/preprocessing/template/t1_template_MNI.nii -t /z/fmrilab/lab/preprocessing/template/7tu_epi_template_Warp.nii.gz -t /z/fmrilab/lab/preprocessing/template/7tu_epi_template_affine.txt -t /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_Warp.nii.gz -t /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_affine.txt
+
+################################################################
+## Task #11                                                   ##
+## Transform mean EPI to EPI-template space                   ##
+################################################################
+
+Tool:
+ Transformation
+
+Params:
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanirbuadvols.nii
+  --output=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/wmeanrbuadvols_epitpl.nii
+  --reference=/z/fmrilab/lab/preprocessing/template/7tu_epi_template_LPI.nii
+  --transformationType=epi2epitpl
+  --epi2EpiTemplateWarp=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_Warp.nii.gz
+  --epi2EpiTemplateInvWarp=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_InverseWarp.nii.gz
+  --epi2EpiTemplateAffine=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_affine.txt
+  --epiTemplateWarp=/z/fmrilab/lab/preprocessing/template/7tu_epi_template_Warp.nii.gz
+  --epiTemplateInvWarp=/z/fmrilab/lab/preprocessing/template/7tu_epi_template_InverseWarp.nii.gz
+  --epiTemplateAffine=/z/fmrilab/lab/preprocessing/template/7tu_epi_template_affine.txt
+  --new
+
+Cmd:
+/usr/local/ants/bin/antsApplyTransforms -e 3 -d 3 -i /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanirbuadvols.nii -o /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/wmeanrbuadvols_epitpl.nii -r /z/fmrilab/lab/preprocessing/template/7tu_epi_template_LPI.nii -t /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_Warp.nii.gz -t /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_affine.txt
+
+################################################################
+## Task #12                                                   ##
+## Transform EPI-template into EPI space                      ##
+################################################################
+
+Tool:
+ Transformation
+
+Params:
+  --input=/z/fmrilab/lab/preprocessing/template/7tu_epi_template_LPI.nii
+  --output=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epitpl_epi_space.nii
+  --reference=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanirbuadvols.nii
+  --transformationType=epitpl2epi
+  --epi2EpiTemplateWarp=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_Warp.nii.gz
+  --epi2EpiTemplateInvWarp=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_InverseWarp.nii.gz
+  --epi2EpiTemplateAffine=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_affine.txt
+  --epiTemplateWarp=/z/fmrilab/lab/preprocessing/template/7tu_epi_template_Warp.nii.gz
+  --epiTemplateInvWarp=/z/fmrilab/lab/preprocessing/template/7tu_epi_template_InverseWarp.nii.gz
+  --epiTemplateAffine=/z/fmrilab/lab/preprocessing/template/7tu_epi_template_affine.txt
+  --new
+
+Cmd:
+/usr/local/ants/bin/antsApplyTransforms -e 3 -d 3 -i /z/fmrilab/lab/preprocessing/template/7tu_epi_template_LPI.nii -o /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epitpl_epi_space.nii -r /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanirbuadvols.nii -t "[/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_affine.txt,1]" -t /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_InverseWarp.nii.gz
+
+################################################################
+## Task #13                                                   ##
+## Transform T1 MNI-template into EPI space                   ##
+################################################################
+
+Tool:
+ Transformation
+
+Params:
+  --input=/z/fmrilab/lab/preprocessing/template/t1_template_MNI.nii
+  --output=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/t1_epi_space_MNI.nii
+  --reference=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanirbuadvols.nii
+  --transformationType=mni2epi
+  --epi2EpiTemplateWarp=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_Warp.nii.gz
+  --epi2EpiTemplateInvWarp=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_InverseWarp.nii.gz
+  --epi2EpiTemplateAffine=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_affine.txt
+  --epiTemplateWarp=/z/fmrilab/lab/preprocessing/template/7tu_epi_template_Warp.nii.gz
+  --epiTemplateInvWarp=/z/fmrilab/lab/preprocessing/template/7tu_epi_template_InverseWarp.nii.gz
+  --epiTemplateAffine=/z/fmrilab/lab/preprocessing/template/7tu_epi_template_affine.txt
+  --new
+
+Cmd:
+/usr/local/ants/bin/antsApplyTransforms -e 3 -d 3 -i /z/fmrilab/lab/preprocessing/template/t1_template_MNI.nii -o /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/t1_epi_space_MNI.nii -r /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanirbuadvols.nii -t "[/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_affine.txt,1]" -t /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_InverseWarp.nii.gz -t "[/z/fmrilab/lab/preprocessing/template/7tu_epi_template_affine.txt,1]" -t /z/fmrilab/lab/preprocessing/template/7tu_epi_template_InverseWarp.nii.gz
+
+################################################################
+## Task #14                                                   ##
+## Transform MNI-brainmask into EPI space                     ##
+################################################################
+
+Tool:
+ Transformation
+
+Params:
+  --input=/z/fmrilab/lab/preprocessing/template/t1_template_MNI_brainmask.nii
+  --output=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/brainmask.nii
+  --reference=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanirbuadvols.nii
+  --transformationType=mni2epi
+  --epi2EpiTemplateWarp=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_Warp.nii.gz
+  --epi2EpiTemplateInvWarp=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_InverseWarp.nii.gz
+  --epi2EpiTemplateAffine=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_affine.txt
+  --epiTemplateWarp=/z/fmrilab/lab/preprocessing/template/7tu_epi_template_Warp.nii.gz
+  --epiTemplateInvWarp=/z/fmrilab/lab/preprocessing/template/7tu_epi_template_InverseWarp.nii.gz
+  --epiTemplateAffine=/z/fmrilab/lab/preprocessing/template/7tu_epi_template_affine.txt
+  --new
+
+Cmd:
+/usr/local/ants/bin/antsApplyTransforms -e 3 -d 3 -i /z/fmrilab/lab/preprocessing/template/t1_template_MNI_brainmask.nii -o /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/brainmask.nii -r /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/meanirbuadvols.nii -t "[/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_affine.txt,1]" -t /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/epi2tpl_InverseWarp.nii.gz -t "[/z/fmrilab/lab/preprocessing/template/7tu_epi_template_affine.txt,1]" -t /z/fmrilab/lab/preprocessing/template/7tu_epi_template_InverseWarp.nii.gz
+
+################################################################
+## Task #15                                                   ##
+## Compute volumes with severe motion artifacts               ##
+################################################################
+
+Tool:
+ Motion Scrubbing
+
+Params:
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/vols_LPI.nii
+  --rp=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/rbuadvols.nii.par.txt
+  --mask=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/brainmask.nii
+  --dvars=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/ms_dvars.txt
+  --fd=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/ms_fd.txt
+  --flagged=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/ms_flagged.txt
+  --dvarsthreshold=0.04
+  --fdthreshold=0.6
+  --rpformat=fsl
+
+################################################################
+## Task #16                                                   ##
+## Smoothing                                                  ##
+################################################################
+
+Tool:
+ Smoothing
+
+Params:
+  --kernelSize=6.0
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/iwrbuadvols.nii
+  --output=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/siwrbuadvols.nii
+
+################################################################
+## Task #17                                                   ##
+## Extracting the global mean signal                          ##
+################################################################
+
+Tool:
+ Extract Timecourse
+
+Params:
+  --mask=/z/fmrilab/lab/preprocessing/template/t1_template_MNI_brainmask.nii
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/iwrbuadvols.nii
+  --output=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/tc_global_iwrbuadvols.txt
+
+################################################################
+## Task #18                                                   ##
+## Extracting the mean CSF signal                             ##
+################################################################
+
+Tool:
+ Extract Timecourse
+
+Params:
+  --mask=/z/fmrilab/lab/preprocessing/masks/roi_csf.nii
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/iwrbuadvols.nii
+  --output=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/mean_tc_csf_iwrbuadvols.txt
+
+################################################################
+## Task #19                                                   ##
+## Extracting the mean WM signal                              ##
+################################################################
+
+Tool:
+ Extract Timecourse
+
+Params:
+  --mask=/z/fmrilab/lab/preprocessing/masks/roi_wm.nii
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/iwrbuadvols.nii
+  --output=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/mean_tc_iwm_wrbuadvols.txt
+
+################################################################
+## Task #20                                                   ##
+## Extracting the first 5 PCA-components of the CSF signal    ##
+################################################################
+
+Tool:
+ Extract Timecourse
+
+Params:
+  --mask=/z/fmrilab/lab/preprocessing/masks/roi_csf.nii
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/iwrbuadvols.nii
+  --output=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/tc_csf_iwrbuadvols.txt
+  --algorithm=tpca
+  --retainComponents=5
+  --useStandardScores
+
+################################################################
+## Task #21                                                   ##
+## Extracting the first 5 PCA-components of the WM signal     ##
+################################################################
+
+Tool:
+ Extract Timecourse
+
+Params:
+  --mask=/z/fmrilab/lab/preprocessing/masks/roi_wm.nii
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/iwrbuadvols.nii
+  --output=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/tc_wm_iwrbuadvols.txt
+  --algorithm=tpca
+  --retainComponents=5
+  --useStandardScores
+
+################################################################
+## Task #22                                                   ##
+## Merging all regressors into one file                       ##
+################################################################
+
+Tool:
+ Merge Regressors
+
+Params:
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/tc_global_iwrbuadvols.txt
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/mean_tc_csf_iwrbuadvols.txt
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/tc_csf_iwrbuadvols.txt
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/mean_tc_iwm_wrbuadvols.txt
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/tc_wm_iwrbuadvols.txt
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/rbuadvols.nii.par.txt
+  --output=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/tc_wm_csf_global_rp_iwrbuadvols.txt
+
+Cmd:
+paste -d '	' /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/tc_global_iwrbuadvols.txt /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/mean_tc_csf_iwrbuadvols.txt /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/tc_csf_iwrbuadvols.txt /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/mean_tc_iwm_wrbuadvols.txt /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/tc_wm_iwrbuadvols.txt /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/rbuadvols.nii.par.txt | sed -e 's/	/ /g' | sed -e 's/  / /g' | sed -e 's/  / /g' > /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/tc_wm_csf_global_rp_iwrbuadvols.txt
+
+################################################################
+## Task #23                                                   ##
+## Merging all regressors (excl. global mean) into one file   ##
+################################################################
+
+Tool:
+ Merge Regressors
+
+Params:
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/mean_tc_csf_iwrbuadvols.txt
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/tc_csf_iwrbuadvols.txt
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/mean_tc_iwm_wrbuadvols.txt
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/tc_wm_iwrbuadvols.txt
+  --input=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/rbuadvols.nii.par.txt
+  --output=/z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/tc_wm_csf_rp_iwrbuadvols.txt
+
+Cmd:
+paste -d '	' /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/mean_tc_csf_iwrbuadvols.txt /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/tc_csf_iwrbuadvols.txt /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/mean_tc_iwm_wrbuadvols.txt /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/tc_wm_iwrbuadvols.txt /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/rbuadvols.nii.par.txt | sed -e 's/	/ /g' | sed -e 's/  / /g' | sed -e 's/  / /g' > /z/fmri/data/empro15/analysis/edt/preproc/m1/TR/run1/test/tc_wm_csf_rp_iwrbuadvols.txt
+
